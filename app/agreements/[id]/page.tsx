@@ -1,43 +1,52 @@
+import { fetchJson } from '../../../lib/api';
+import ApplyPaymentForm from '../../../components/payments/ApplyPaymentForm';
+
+type AgreementDetail = {
+  agreement: any;
+  obligations: any[];
+  payments: any[];
+};
+
 async function getAgreement(id: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/agreements/${id}`, {
-    cache: 'no-store',
-  });
-  return res.json();
+  return fetchJson<AgreementDetail>(`/api/agreements/${id}`).catch(() => ({ agreement: null, obligations: [], payments: [] }));
 }
 
-export default async function AgreementDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function AgreementDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const data = await getAgreement(id);
 
   return (
-    <main style={{ padding: 24 }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, marginBottom: 8 }}>Agreement</h1>
-        <p style={{ fontSize: 14, opacity: 0.7 }}>{data.agreement?.reference_number || data.agreement?.id}</p>
-      </div>
-
-      <section style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', marginBottom: 24 }}>
-        <div style={cardStyle}><div style={labelStyle}>Type</div><div>{data.agreement?.agreement_type}</div></div>
-        <div style={cardStyle}><div style={labelStyle}>Status</div><div>{data.agreement?.agreement_status}</div></div>
-        <div style={cardStyle}><div style={labelStyle}>Rent</div><div>{data.agreement?.rent_amount ?? '-'} JOD</div></div>
+    <main className="page">
+      <section className="page__header">
+        <div>
+          <h1 className="page__title">Agreement</h1>
+          <p className="page__subtitle">{data.agreement?.reference_number || data.agreement?.id || id}</p>
+        </div>
       </section>
 
-      <section style={{ display: 'grid', gap: 12 }}>
-        <h2 style={{ fontSize: 22 }}>Obligations</h2>
-        {data.obligations?.map((item: any) => (
-          <div key={item.id} style={cardStyle}>
-            <div style={{ fontWeight: 600 }}>{item.title}</div>
-            <div style={{ fontSize: 14, opacity: 0.7 }}>Due: {item.amount_due} | Paid: {item.amount_paid} | Remaining: {item.amount_remaining}</div>
+      <section className="grid grid--cards">
+        <article className="card"><div className="card__label">Type</div><div>{data.agreement?.agreement_type || 'Not available yet'}</div></article>
+        <article className="card"><div className="card__label">Status</div><div>{data.agreement?.agreement_status || 'Stub response'}</div></article>
+        <article className="card"><div className="card__label">Rent</div><div>{data.agreement?.rent_amount ?? '-'} JOD</div></article>
+      </section>
+
+      <section className="grid grid--two">
+        <article className="card">
+          <h2 className="card__title">Obligations</h2>
+          <div className="stack">
+            {data.obligations.length ? data.obligations.map((item) => (
+              <div key={item.id} className="card">
+                <strong>{item.title}</strong>
+                <div className="card__label">Due: {item.amount_due} | Paid: {item.amount_paid} | Remaining: {item.amount_remaining}</div>
+              </div>
+            )) : <div className="empty">The backend currently returns an empty agreement payload. This page is already ready for the full response once implemented.</div>}
           </div>
-        ))}
+        </article>
+        <article className="card">
+          <h2 className="card__title">Payment Action</h2>
+          <ApplyPaymentForm municipalityId="REPLACE_WITH_MUNICIPALITY_ID" obligationId="REPLACE_WITH_OBLIGATION_ID" />
+        </article>
       </section>
     </main>
   );
 }
-
-const cardStyle: React.CSSProperties = { border: '1px solid #ddd', borderRadius: 16, padding: 16 };
-const labelStyle: React.CSSProperties = { fontSize: 14, opacity: 0.7, marginBottom: 8 };

@@ -1,34 +1,34 @@
+import { fetchJson } from '../../../../lib/api';
+
+type TimelineItem = { id: string; title: string; category_label?: string | null; improvement_type?: string | null; estimated_cost?: number | null; actual_cost?: number | null; status?: string | null };
+
 async function getTimeline(propertyId: string) {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/properties/${propertyId}/improvement-timeline`,
-    { cache: 'no-store' }
-  );
-  return res.json();
+  return fetchJson<{ items: TimelineItem[] }>(`/api/properties/${propertyId}/improvement-timeline`).catch(() => ({ items: [] }));
 }
 
-export default async function PropertyImprovementsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function PropertyImprovementsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const data = await getTimeline(id);
 
   return (
-    <main style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 28, marginBottom: 20 }}>Property Improvements</h1>
-      <div style={{ display: 'grid', gap: 12 }}>
-        {data.items?.map((item: any) => (
-          <a key={item.id} href={`/improvements/${item.id}`} style={cardStyle}>
-            <div style={{ fontWeight: 600 }}>{item.title}</div>
-            <div style={{ fontSize: 14, opacity: 0.7 }}>{item.category_label || item.improvement_type || 'General'}</div>
-            <div style={{ fontSize: 14 }}>Estimated: {item.estimated_cost ?? '-'} | Actual: {item.actual_cost ?? '-'}</div>
-            <div style={{ fontSize: 14, opacity: 0.7 }}>Status: {item.status}</div>
+    <main className="page">
+      <section className="page__header">
+        <div>
+          <h1 className="page__title">Property Improvements</h1>
+          <p className="page__subtitle">Timeline of renovation and improvement work.</p>
+        </div>
+      </section>
+
+      <section className="stack">
+        {data.items.length ? data.items.map((item) => (
+          <a key={item.id} href={`/improvements/${item.id}`} className="card card--link">
+            <h2 className="card__title">{item.title}</h2>
+            <div className="card__label">{item.category_label || item.improvement_type || 'General'}</div>
+            <div>Estimated: {item.estimated_cost ?? '-'} | Actual: {item.actual_cost ?? '-'}</div>
+            <div className="card__label">Status: {item.status || 'planned'}</div>
           </a>
-        ))}
-      </div>
+        )) : <div className="empty">This backend route is not implemented yet. Once <code>/api/properties/:id/improvement-timeline</code> is added, this list will populate automatically.</div>}
+      </section>
     </main>
   );
 }
-
-const cardStyle: React.CSSProperties = { border: '1px solid #ddd', borderRadius: 16, padding: 16, display: 'block' };

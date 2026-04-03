@@ -1,8 +1,14 @@
+import { fetchJson } from '../../../lib/api';
+
+type ImprovementResponse = {
+  improvement: any;
+  materials: any[];
+  media: any[];
+  notes: any[];
+};
+
 async function getImprovement(id: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/improvements/${id}`, {
-    cache: 'no-store',
-  });
-  return res.json();
+  return fetchJson<ImprovementResponse>(`/api/improvements/${id}`).catch(() => ({ improvement: null, materials: [], media: [], notes: [] }));
 }
 
 export default async function ImprovementDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -10,34 +16,41 @@ export default async function ImprovementDetailPage({ params }: { params: Promis
   const data = await getImprovement(id);
 
   return (
-    <main style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 28, marginBottom: 20 }}>Improvement Detail</h1>
-
-      <section style={{ ...cardStyle, marginBottom: 20 }}>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>{data.improvement?.title}</div>
-        <div style={{ fontSize: 14, opacity: 0.7, marginBottom: 8 }}>{data.improvement?.status}</div>
-        <div style={{ fontSize: 14 }}>Estimated: {data.improvement?.estimated_cost ?? '-'} | Actual: {data.improvement?.actual_cost ?? '-'}</div>
-      </section>
-
-      <section style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 22, marginBottom: 12 }}>Materials</h2>
-        <div style={{ display: 'grid', gap: 12 }}>
-          {data.materials?.map((item: any) => (
-            <div key={item.id} style={cardStyle}>{item.material_name}</div>
-          ))}
+    <main className="page">
+      <section className="page__header">
+        <div>
+          <h1 className="page__title">Improvement Detail</h1>
+          <p className="page__subtitle">Improvement ID: {id}</p>
         </div>
       </section>
 
-      <section>
-        <h2 style={{ fontSize: 22, marginBottom: 12 }}>Notes</h2>
-        <div style={{ display: 'grid', gap: 12 }}>
-          {data.notes?.map((item: any) => (
-            <div key={item.id} style={cardStyle}>{item.title}</div>
-          ))}
+      <section className="grid grid--two">
+        <article className="card">
+          <h2 className="card__title">Overview</h2>
+          <div className="stack">
+            <div>{data.improvement?.title || 'Not available yet'}</div>
+            <div className="card__label">{data.improvement?.status || 'Stub response'}</div>
+            <div>Estimated: {data.improvement?.estimated_cost ?? '-'} | Actual: {data.improvement?.actual_cost ?? '-'}</div>
+          </div>
+        </article>
+        <article className="card">
+          <h2 className="card__title">Materials</h2>
+          <div className="stack">
+            {data.materials.length ? data.materials.map((item) => (
+              <div key={item.id} className="card">{item.material_name}</div>
+            )) : <div className="empty">The improvement detail endpoint is still a scaffold response.</div>}
+          </div>
+        </article>
+      </section>
+
+      <section className="card">
+        <h2 className="card__title">Notes</h2>
+        <div className="stack">
+          {data.notes.length ? data.notes.map((item) => (
+            <div key={item.id} className="card">{item.title}</div>
+          )) : <div className="empty">No value notes returned yet.</div>}
         </div>
       </section>
     </main>
   );
 }
-
-const cardStyle: React.CSSProperties = { border: '1px solid #ddd', borderRadius: 16, padding: 16 };

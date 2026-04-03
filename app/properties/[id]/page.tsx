@@ -1,47 +1,71 @@
+import Link from 'next/link';
+import { fetchJson } from '../../../lib/api';
+
+type PropertyDetail = {
+  property: {
+    id: string;
+    title: string;
+    property_type: string;
+    owner_id?: string | null;
+    registry_status?: string | null;
+    total_area_sqm?: number | null;
+    address_line_1?: string | null;
+    city?: string | null;
+    region?: string | null;
+    postal_code?: string | null;
+    plot_number?: string | null;
+    parcel_number?: string | null;
+  };
+};
+
 async function getProperty(id: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/properties/${id}`, {
-    cache: 'no-store',
-  });
-  return res.json();
+  return fetchJson<PropertyDetail>(`/api/properties/${id}`);
 }
 
-export default async function PropertyDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const data = await getProperty(id);
+  const property = data.property;
 
   return (
-    <main style={{ padding: 24 }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, marginBottom: 8 }}>{data.property.title}</h1>
-        <p style={{ fontSize: 14, opacity: 0.7 }}>{data.property.property_type}</p>
-      </div>
+    <main className="page">
+      <section className="page__header">
+        <div>
+          <h1 className="page__title">{property.title}</h1>
+          <p className="page__subtitle">{property.property_type}</p>
+        </div>
+        <div className="pill-row">
+          <Link href="/properties" className="pill">All Properties</Link>
+          <Link href={`/properties/${id}/obligations`} className="pill">Obligations</Link>
+          <Link href={`/properties/${id}/due-center`} className="pill">Due Center</Link>
+          <Link href={`/properties/${id}/improvements`} className="pill">Improvements</Link>
+          <Link href={`/properties/${id}/media`} className="pill">Media</Link>
+        </div>
+      </section>
 
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
-        <a href={`/properties/${id}`} style={pillStyle}>Overview</a>
-        <a href={`/properties/${id}/obligations`} style={pillStyle}>Obligations</a>
-        <a href={`/properties/${id}/due-center`} style={pillStyle}>Due Center</a>
-        <a href={`/properties/${id}/improvements`} style={pillStyle}>Improvements</a>
-        <a href={`/properties/${id}/media`} style={pillStyle}>Media</a>
-      </div>
+      <section className="grid grid--cards">
+        <article className="card"><dl className="kv"><dt>Owner ID</dt><dd>{property.owner_id || 'Unassigned'}</dd></dl></article>
+        <article className="card"><dl className="kv"><dt>Registry Status</dt><dd>{property.registry_status || 'active'}</dd></dl></article>
+        <article className="card"><dl className="kv"><dt>Area</dt><dd>{property.total_area_sqm ?? '-'} sqm</dd></dl></article>
+      </section>
 
-      <section style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-        <div style={cardStyle}><div style={labelStyle}>Owner</div><div>{data.property.owner_id ?? 'Unassigned'}</div></div>
-        <div style={cardStyle}><div style={labelStyle}>Registry Status</div><div>{data.property.registry_status}</div></div>
-        <div style={cardStyle}><div style={labelStyle}>Area</div><div>{data.property.total_area_sqm ?? '-'} sqm</div></div>
+      <section className="grid grid--two">
+        <article className="card">
+          <h2 className="card__title">Address</h2>
+          <div className="stack">
+            <span>{property.address_line_1 || 'No street address saved'}</span>
+            <span className="card__label">{[property.city, property.region, property.postal_code].filter(Boolean).join(', ') || 'City/region not saved yet'}</span>
+          </div>
+        </article>
+        <article className="card">
+          <h2 className="card__title">Registry identifiers</h2>
+          <div className="stack">
+            <span>Plot number: {property.plot_number || '—'}</span>
+            <span>Parcel number: {property.parcel_number || '—'}</span>
+            <span className="card__label">Property ID: {property.id}</span>
+          </div>
+        </article>
       </section>
     </main>
   );
 }
-
-const pillStyle: React.CSSProperties = {
-  border: '1px solid #ddd',
-  borderRadius: 999,
-  padding: '10px 16px',
-  fontSize: 14,
-};
-const cardStyle: React.CSSProperties = { border: '1px solid #ddd', borderRadius: 16, padding: 16 };
-const labelStyle: React.CSSProperties = { fontSize: 14, opacity: 0.7, marginBottom: 8 };

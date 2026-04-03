@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { buildApiUrl } from '../../../lib/api';
 
 export default function NewImprovementPage() {
   const [form, setForm] = useState({
@@ -10,48 +11,65 @@ export default function NewImprovementPage() {
     description: '',
     estimatedCost: '',
     actualCost: '',
+    startDate: '',
+    endDate: '',
     status: 'planned',
   });
+  const [status, setStatus] = useState('');
 
   async function submit() {
-    const payload = {
-      ...form,
-      estimatedCost: form.estimatedCost ? Number(form.estimatedCost) : null,
-      actualCost: form.actualCost ? Number(form.actualCost) : null,
-    };
+    setStatus('Saving improvement...');
+    try {
+      const payload = {
+        ...form,
+        estimatedCost: form.estimatedCost ? Number(form.estimatedCost) : null,
+        actualCost: form.actualCost ? Number(form.actualCost) : null,
+      };
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/improvements`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+      const res = await fetch(buildApiUrl('/api/improvements'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    const data = await res.json();
-    console.log(data);
-    alert('Improvement created');
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || data?.message || 'Could not save improvement');
+      }
+      setStatus(data?.message || 'Improvement request saved. The backend currently returns a stub response.');
+    } catch (error: any) {
+      setStatus(error.message || 'Could not save improvement');
+    }
   }
 
   return (
-    <main style={{ padding: 24, maxWidth: 780 }}>
-      <h1 style={{ fontSize: 28, marginBottom: 20 }}>Create Improvement</h1>
-      <div style={{ display: 'grid', gap: 12 }}>
-        <input style={inputStyle} placeholder="Municipality ID" onChange={(e) => setForm({ ...form, municipalityId: e.target.value })} />
-        <input style={inputStyle} placeholder="Property ID" onChange={(e) => setForm({ ...form, propertyId: e.target.value })} />
-        <input style={inputStyle} placeholder="Title" onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        <textarea style={{ ...inputStyle, minHeight: 120 }} placeholder="Description" onChange={(e) => setForm({ ...form, description: e.target.value })} />
-        <input style={inputStyle} placeholder="Estimated Cost" onChange={(e) => setForm({ ...form, estimatedCost: e.target.value })} />
-        <input style={inputStyle} placeholder="Actual Cost" onChange={(e) => setForm({ ...form, actualCost: e.target.value })} />
-        <select style={inputStyle} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+    <main className="page">
+      <section className="page__header">
+        <div>
+          <h1 className="page__title">Create Improvement</h1>
+          <p className="page__subtitle">Track renovation, blueprint, and value-add work.</p>
+        </div>
+      </section>
+
+      {status ? <div className="notice">{status}</div> : null}
+
+      <div className="form">
+        <input className="input" placeholder="Municipality ID" onChange={(e) => setForm({ ...form, municipalityId: e.target.value })} />
+        <input className="input" placeholder="Property ID" onChange={(e) => setForm({ ...form, propertyId: e.target.value })} />
+        <input className="input" placeholder="Title" onChange={(e) => setForm({ ...form, title: e.target.value })} />
+        <textarea className="textarea" placeholder="Description" onChange={(e) => setForm({ ...form, description: e.target.value })} />
+        <input className="input" placeholder="Estimated Cost" onChange={(e) => setForm({ ...form, estimatedCost: e.target.value })} />
+        <input className="input" placeholder="Actual Cost" onChange={(e) => setForm({ ...form, actualCost: e.target.value })} />
+        <input type="date" className="input" onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+        <input type="date" className="input" onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+        <select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
           <option value="planned">Planned</option>
           <option value="in_progress">In Progress</option>
           <option value="completed">Completed</option>
           <option value="cancelled">Cancelled</option>
         </select>
-        <button onClick={submit} style={buttonStyle}>Save Improvement</button>
+        <button onClick={submit} className="button button--primary">Save Improvement</button>
       </div>
     </main>
   );
 }
-
-const inputStyle: React.CSSProperties = { width: '100%', border: '1px solid #ddd', borderRadius: 12, padding: 12 };
-const buttonStyle: React.CSSProperties = { border: '1px solid #ddd', borderRadius: 999, padding: '12px 20px', width: 'fit-content', background: '#fff', cursor: 'pointer' };

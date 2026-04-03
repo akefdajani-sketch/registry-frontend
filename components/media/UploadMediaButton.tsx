@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { buildApiUrl } from '../../lib/api';
 
 type Props = {
   municipalityId: string;
@@ -11,39 +12,41 @@ type Props = {
 
 export default function UploadMediaButton(props: Props) {
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
 
   async function handleFileChange(file: File) {
     setLoading(true);
+    setStatus('Preparing upload...');
 
     try {
-      const signRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/media/sign-upload`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            municipalityId: props.municipalityId,
-            entityType: props.entityType,
-            entityId: props.entityId,
-            mediaCategory: props.mediaCategory,
-            fileName: file.name,
-            mimeType: file.type,
-            fileSizeBytes: file.size,
-          }),
-        }
-      );
+      const signRes = await fetch(buildApiUrl('/api/media/sign-upload'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          municipalityId: props.municipalityId,
+          entityType: props.entityType,
+          entityId: props.entityId,
+          mediaCategory: props.mediaCategory,
+          fileName: file.name,
+          mimeType: file.type,
+          fileSizeBytes: file.size,
+        }),
+      });
 
       const signed = await signRes.json();
 
+      if (!signed.uploadUrl) {
+        setStatus('The backend media route is still returning a placeholder response. Upload wiring is ready but the backend needs real signed URLs.');
+        return;
+      }
+
       await fetch(signed.uploadUrl, {
         method: 'PUT',
-        headers: {
-          'Content-Type': file.type,
-        },
+        headers: { 'Content-Type': file.type },
         body: file,
       });
 
-      await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/media/register`, {
+      await fetch(buildApiUrl('/api/media/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -59,23 +62,28 @@ export default function UploadMediaButton(props: Props) {
         }),
       });
 
-      alert('Upload complete');
+      setStatus('Upload complete');
+    } catch (error: any) {
+      setStatus(error.message || 'Upload failed');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <label style={{ display: 'inline-flex', cursor: 'pointer', border: '1px solid #ddd', borderRadius: 999, padding: '10px 16px' }}>
-      {loading ? 'Uploading...' : 'Upload file'}
-      <input
-        type="file"
-        style={{ display: 'none' }}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleFileChange(file);
-        }}
-      />
-    </label>
+    <div className="stack">
+      <label className="button">
+        {loading ? 'Uploading...' : 'Upload file'}
+        <input
+          type="file"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFileChange(file);
+          }}
+        />
+      </label>
+      {status ? <div className="notice">{status}</div> : null}
+    </div>
   );
 }
