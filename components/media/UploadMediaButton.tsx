@@ -34,11 +34,7 @@ export default function UploadMediaButton(props: Props) {
       });
 
       const signed = await signRes.json();
-
-      if (!signed.uploadUrl) {
-        setStatus('The backend media route is still returning a placeholder response. Upload wiring is ready but the backend needs real signed URLs.');
-        return;
-      }
+      if (!signRes.ok) throw new Error(signed?.error || signed?.message || 'Could not prepare upload');
 
       await fetch(signed.uploadUrl, {
         method: 'PUT',
@@ -46,7 +42,7 @@ export default function UploadMediaButton(props: Props) {
         body: file,
       });
 
-      await fetch(buildApiUrl('/api/media/register'), {
+      const registerRes = await fetch(buildApiUrl('/api/media/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -61,6 +57,8 @@ export default function UploadMediaButton(props: Props) {
           publicUrl: signed.publicUrl,
         }),
       });
+      const registered = await registerRes.json();
+      if (!registerRes.ok) throw new Error(registered?.error || registered?.message || 'Could not register media');
 
       setStatus('Upload complete');
     } catch (error: any) {
@@ -74,14 +72,7 @@ export default function UploadMediaButton(props: Props) {
     <div className="stack">
       <label className="button">
         {loading ? 'Uploading...' : 'Upload file'}
-        <input
-          type="file"
-          style={{ display: 'none' }}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleFileChange(file);
-          }}
-        />
+        <input type="file" style={{ display: 'none' }} onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileChange(file); }} />
       </label>
       {status ? <div className="notice">{status}</div> : null}
     </div>

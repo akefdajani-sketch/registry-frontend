@@ -18,7 +18,8 @@ export default function ApplyPaymentForm({ municipalityId, obligationId }: { mun
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || data?.message || 'Payment failed');
-      setStatus(data?.message || 'Payment request saved. The current backend still returns a stub response.');
+      setStatus(data?.message || 'Payment applied successfully');
+      setAmountPaid('');
     } catch (error: any) {
       setStatus(error.message || 'Payment failed');
     }
